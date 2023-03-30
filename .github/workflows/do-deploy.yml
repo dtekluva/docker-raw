@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: Pull New Changes
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: 22
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/imperium
+            git pull origin dev
+            
+      - name: Restart Backend
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: 22
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+     
+          script: |
+            cd /home/imperium
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py makemigrations
+            python manage.py migrate
+            python manage.py loaddata ven_sec_reg_state.json
+            python manage.py loaddata users.json
+            python manage.py loaddata shs.json
+            systemctl restart gunicorn
